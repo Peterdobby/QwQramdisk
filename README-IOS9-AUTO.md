@@ -123,9 +123,12 @@ Linux 离线构建无需签名工具。旧入口 `tools.verify_ios921` 仍可使
 存储 I/O 等待；因此不能省略第二步，也不能在挂载已经阻塞后才调用它。
 
 本地集成版通过 profile 的 `ios9_storage_mode=asp-writable` 自动打包启动参数、
-模式标记和预签名 `ensure-asp-writable-ios9`。目前只为已验证的 `n61-13F69`
-启用该模式；其他 profile 的启动参数和存储准备流程保持原样。
-新助手先核对 Data 介质可写及唯一 ASPStorage，再设置属性并检查结果。
+模式标记和预签名 `ensure-asp-writable-ios9`。所有已配置的 iOS 9 A7 / A8 / A8X
+profile 现在按 CPID（0x8960 / 0x7000 / 0x7001）自动启用，不再限定 n61 或构建号。
+A9 及 iOS 7/8 的存储流程不受此规则影响。iPhone 6 Plus 的 n56ap iOS 9 配置也已补齐。
+新助手先核对 Data 介质可写；有唯一 ASPStorage 时设置属性并检查结果。
+没有 ASPStorage 但 Data 已可写时继续走原生路径；介质仍只读、驱动匹配歧义或
+属性设置失败会明确报错，不会硬套未知驱动。
 它不格式化、不改分区表，也不执行文件系统修复。
 
 ```sh

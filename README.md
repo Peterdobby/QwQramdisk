@@ -8,15 +8,18 @@ fixes on top of [j1ans/QwQramdisk](https://github.com/j1ans/QwQramdisk).
 and Data read/write checks; the updated 9.1 package was reported working by
 the tester. Validation is specific to the listed boards and test scope;
 see [the validation matrix](docs/validation/ios9.md).
-The iPhone 6 (`n61ap`) 9.3.2 profile also includes the device-tested ASP write
-setup: `nand-readonly=0` and early `ASPSetWritable`, with the stock kernel.
+All configured iOS 9 A7/A8/A8X profiles now use `nand-readonly=0` and early
+ASP write preparation, retaining the stock kernel. Native writable drivers
+without ASPStorage continue normally. This storage sequence is device-tested
+on iPhone 6 (`n61ap`) 9.3.2; other boards/builds remain unverified. A9 and iOS 7/8
+storage setup are unchanged. iPhone 6 Plus (`n56ap`) iOS 9 profiles are included.
 
 QwQramdisk supports iOS 7, iOS 8, and **experimental iOS 9** arm64 SSH
 ramdisks. iOS 7/8 support includes the iPhone 5s, iPhone 6, iPhone 6 Plus,
 iPad Air, and iPad Air 2 families. The iOS 9 profiles cover exact firmware
-builds from 9.0 through 9.3.5. Those profiles passed offline firmware and
-image checks; most have not been tested for DFU boot, SSH, or `/mnt2` mounting
-on a device.
+builds from 9.0 through 9.3.5. Offline firmware and image checks cover the
+original profile set and representative new profiles; most have not been
+tested for DFU boot, SSH, or `/mnt2` mounting on a device.
 
 The tool accepts an iOS version and either detects a connected DFU device or
 uses a specified board. It downloads only the required IPSW members, discovers

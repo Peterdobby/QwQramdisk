@@ -95,6 +95,9 @@ def _profiles_for(model, builds):
         f"{model}-{build}": {
             "name": f"{model}-{build}", **device,
             "version": version, "build": build,
+            **({"ios9_storage_mode": "asp-writable"}
+               if version.startswith("9.") and device["cpid"] in {0x8960, 0x7000, 0x7001}
+               else {}),
         }
         for build, version in builds.items()
     }
@@ -128,9 +131,9 @@ IOS9_A9_EARLY = {"13A405": "9.0.1"}
 IOS9_A7_93 = {"13E233": "9.3", "13E237": "9.3"}
 IOS9_A8_93 = {"13E233": "9.3"}
 IOS9_A9_93 = {"13E234": "9.3"}
-IOS9_D20_MODELS = {"j81", "j82", "n61", "n71", "n71m",
+IOS9_D20_MODELS = {"j81", "j82", "n56", "n61", "n71", "n71m",
                    "j85m", "j86m", "j87m", "n66", "n66m"}
-for model in ("j81", "j82", "n61", "n71", "n71m", "n51", "n53",
+for model in ("j81", "j82", "n56", "n61", "n71", "n71m", "n51", "n53",
               "j85", "j86", "j87", "j85m", "j86m", "j87m",
               "n66", "n66m"):
     builds = dict(IOS9_SHARED_BUILDS)
@@ -147,10 +150,6 @@ for model in ("j81", "j82", "n61", "n71", "n71m", "n51", "n53",
         builds.update(IOS9_NON_A9_EARLY)
         builds.update(IOS9_A8_93)
     PROFILES.update(_profiles_for(model, builds))
-
-
-# Verified on n61ap / 13F69. Other iOS 9 profiles retain their original setup.
-PROFILES["n61-13F69"]["ios9_storage_mode"] = "asp-writable"
 
 
 def _hex_field(value, label):

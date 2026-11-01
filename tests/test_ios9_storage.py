@@ -8,6 +8,7 @@ import tempfile
 import unittest
 
 from tools.ios9_pattern import BOOTARGS, bootargs_for_profile, patch_stage
+from tools.profiles import PROFILES
 
 ROOT = Path(__file__).resolve().parents[1]
 N61_IBEC = Path(os.environ.get('QWQ_N61_IBEC', ROOT / 'cache/n61-13F69/decrypted/iBEC.raw'))
@@ -15,8 +16,25 @@ N61_IBEC = Path(os.environ.get('QWQ_N61_IBEC', ROOT / 'cache/n61-13F69/decrypted
 
 class StorageBootChecks(unittest.TestCase):
     def test_other_profiles_keep_existing_bootargs(self):
-        for profile in ('n66m-13F69', 'n71m-13B143', 'n71m-13A452', 'n51-13F69'):
+        for profile in ('n66m-13F69', 'n71m-13B143', 'n71m-13A452', 'n51-12A365', 'n61-12H321'):
             self.assertEqual(bootargs_for_profile(profile), BOOTARGS)
+
+    def test_all_ios9_a7_a8_a8x_profiles_enable_storage_setup(self):
+        selected = set()
+        for name, profile in PROFILES.items():
+            if profile['version'].startswith('9.') and profile['cpid'] in {0x8960, 0x7000, 0x7001}:
+                with self.subTest(profile=name):
+                    self.assertEqual(profile.get('ios9_storage_mode'), 'asp-writable')
+                    self.assertTrue(bootargs_for_profile(name).endswith(b' nand-readonly=0\0'))
+                selected.add(profile['cpid'])
+        self.assertEqual(selected, {0x8960, 0x7000, 0x7001})
+
+    def test_a9_profiles_never_enable_asp_setup(self):
+        for name, profile in PROFILES.items():
+            if profile['cpid'] in {0x8000, 0x8003}:
+                with self.subTest(profile=name):
+                    self.assertNotIn('ios9_storage_mode', profile)
+                    self.assertEqual(bootargs_for_profile(name), BOOTARGS)
 
     @unittest.skipUnless(N61_IBEC.is_file(), 'local n61 13F69 iBEC sample unavailable')
     def test_generated_ibec_contains_n61_storage_argument(self):
@@ -88,12 +106,16 @@ class StorageHelperChecks(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertNotIn('SET ASPSetWritable', r.stdout)
 
-    def test_missing_or_ambiguous_controller_never_changes_properties(self):
-        for case in ('missing', 'ambiguous'):
-            with self.subTest(case=case):
-                r = self.run_case(case)
-                self.assertNotEqual(r.returncode, 0)
-                self.assertNotIn('SET ASPSetWritable', r.stdout)
+    def test_native_writable_media_without_asp_needs_no_property_change(self):
+        r = self.run_case('missing')
+        self.assertEqual(r.returncode, 0)
+        self.assertIn('native Data media is writable', r.stdout)
+        self.assertNotIn('SET ASPSetWritable', r.stdout)
+
+    def test_ambiguous_controller_never_changes_properties(self):
+        r = self.run_case('ambiguous')
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn('SET ASPSetWritable', r.stdout)
 
     def test_controller_failure_is_not_reported_ready(self):
         r = self.run_case('setfail')

@@ -83,5 +83,27 @@
       "board": "unspecified",
       "logs_reviewed": false
     }
-  ]
+  ],
+  "ios9_a7_a8_storage_policy": {
+    "cpids": [
+      "0x8960",
+      "0x7000",
+      "0x7001"
+    ],
+    "scope": "all configured iOS 9 profiles, including n56ap",
+    "storage_mode": "asp-writable",
+    "boot_argument": "nand-readonly=0",
+    "no_asp_controller": "continue only when native Data media is already writable",
+    "device_verified": [
+      "n61-13F69"
+    ],
+    "other_boards_and_builds": "hardware testing required",
+    "a9_and_ios7_ios8": "unchanged",
+    "representative_offline_checks_passed": [
+      "n51-13F69",
+      "n56-13F69",
+      "j81-13F69"
+    ],
+    "regression_tests_passed": 28
+  }
 }

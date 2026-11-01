@@ -1,5 +1,6 @@
-/* Enable the A8 ASP write path before mounting System or Data.
+/* Prepare iOS 9 A7/A8/A8X writes before mounting System or Data.
  * nand-readonly=0 must already have published writable child media at boot.
+ * Native writable media without ASPStorage need no property change.
  * This only sets the driver's ASPSetWritable property; it never formats media.
  */
 #include <CoreFoundation/CoreFoundation.h>
@@ -48,8 +49,13 @@ int main(void)
     io_object_t storage = IOIteratorNext(iterator);
     io_object_t other = IOIteratorNext(iterator);
     IOObjectRelease(iterator);
-    if (!storage || other) {
-        if (storage) IOObjectRelease(storage);
+    if (!storage) {
+        if (other) IOObjectRelease(other);
+        puts("ensure-asp-writable-ios9: no ASPStorage; native Data media is writable");
+        return 0;
+    }
+    if (other) {
+        IOObjectRelease(storage);
         if (other) IOObjectRelease(other);
         fputs("ensure-asp-writable-ios9: expected exactly one ASPStorage; stopped\n", stderr);
         return 1;

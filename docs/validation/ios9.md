@@ -83,6 +83,15 @@ System/SEP/Data activity. Calling it after a pending RW mount did not recover
 that wait. The combined sequence passed on the diagnostic image with the
 unchanged release kernel and unchanged keybagd patches.
 
-The production helper and profile mode automate that sequence only for
-`n61-13F69`. Original A9 boot arguments are unchanged. The final integrated
+The production helper and profile mode apply that sequence to all configured
+iOS 9 A7/A8/A8X profiles by CPID (0x8960/0x7000/0x7001), including n56ap.
+Native writable storage without ASPStorage proceeds without a property change;
+read-only media, ambiguous drivers and property failures stop explicitly.
+Only n61ap/13F69 has device validation for this storage sequence. Other boards
+and builds still need hardware testing. Original A9 and iOS 7/8 paths are unchanged. The final integrated
 image is checked offline; its complete cold boot remains pending regression.
+
+The generalized policy passed 28 regression tests and full offline firmware,
+bootchain and wrapped-ramdisk checks for iPhone 5s (`n51-13F69`), iPhone 6 Plus
+(`n56-13F69`) and iPad Air 2 (`j81-13F69`). These are offline results, not new
+device boot or Data-mount validations.
