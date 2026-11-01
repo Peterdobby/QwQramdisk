@@ -33,8 +33,38 @@
       "patched_keybagd_sha256": "8f02a3166f920e383c3a68581aa59662aee31a56a48b46c446d9022853927425",
       "relocated_paths": 9,
       "instruction_patches": 6
+    },
+    {
+      "profile": "n71m-13A452",
+      "version": "9.0.2",
+      "offline_image_checks": "passed",
+      "device_live_session": "passed with reviewed diagnostics",
+      "final_packaged_image_cold_boot": "pending regression",
+      "source_keybagd_sha256": "d50181830555b9cf68a50a40af83cb0c3584b66fb6d0d4b272629e2c0322d7ae",
+      "patched_keybagd_sha256": "74752297ab7f0966ab0df568c42b92140105a160802ac09151c1beed88917747",
+      "relocated_paths": 9,
+      "instruction_patches": 6
+    },
+    {
+      "profile": "n71m-13B143",
+      "version": "9.1",
+      "offline_image_checks": "passed",
+      "device_live_session": "user-reported passed; raw mount log not archived",
+      "final_packaged_image_cold_boot": "user-reported passed",
+      "source_keybagd_sha256": "b421251878417bb456d570398fb4c1c85c0b00013745c122b21eb87365d8656e",
+      "patched_keybagd_sha256": "781d5812b83a0c5e27580440ddb6f76ed648c1fc8f5867065d6344922435700c",
+      "relocated_paths": 9,
+      "instruction_patches": 6
     }
   ],
   "activation_restore_validation": "isolated device tmp fixture",
-  "mobilegestalt_patch_validation": "offline only"
+  "mobilegestalt_patch_validation": "offline only",
+  "additional_user_reports": [
+    {
+      "version": "9.3.5",
+      "result": "reported working",
+      "board": "unspecified",
+      "logs_reviewed": false
+    }
+  ]
 }

@@ -21,6 +21,10 @@ def resolve_firmware(profile):
     doc = get_json(IPSW_API.format(device=p["device"]))
     for fw in doc["firmwares"]:
         if fw["version"] == p["version"] and fw["buildid"] == p["build"]:
+            # The legacy API URL may be HTTP even though the archive is
+            # available over HTTPS and the HTTP endpoint no longer works.
+            if fw["url"].startswith("http://appldnld.apple.com/"):
+                fw = {**fw, "url": "https://" + fw["url"][7:]}
             return fw
     raise ValueError(f"firmware not found: {p['device']} {p['version']} {p['build']}")
 

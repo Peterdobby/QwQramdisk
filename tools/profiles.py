@@ -224,7 +224,9 @@ def validation_status(profile):
         return "device-tested"
     if name == "n66-13A405":
         return "device-tested-ssh-rw"
-    if name in {"n66m-13D15", "n66m-13F69"}:
+    if name == "n71m-13B143":
+        return "device-reported-ssh-rw"
+    if name in {"n66m-13D15", "n66m-13F69", "n71m-13A452"}:
         return "device-tested-live-ssh-rw"
     if p["version"].startswith("9."):
         return "experimental-offline"

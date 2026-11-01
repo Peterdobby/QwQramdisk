@@ -6,7 +6,7 @@
       "size": 117424,
       "paths": 9,
       "source_sha256": "d50181830555b9cf68a50a40af83cb0c3584b66fb6d0d4b272629e2c0322d7ae",
-      "result_sha256": "b1e45e6707d024f1b767f7e5606bbfdf371fcdfb6a3e99c2c61a513ae56e309e",
+      "result_sha256": "74752297ab7f0966ab0df568c42b92140105a160802ac09151c1beed88917747",
       "patches": [
         {
           "offset": 19512,
@@ -27,8 +27,66 @@
           "offset": 19760,
           "before": "40810610",
           "after": "26000014"
+        },
+        {
+          "offset": 19632,
+          "before": "e0730630",
+          "after": "c07b0670"
+        },
+        {
+          "offset": 19648,
+          "before": "53feff97",
+          "after": "6a2f0094"
         }
-      ]
+      ],
+      "observed_builds": [
+        "13A405",
+        "13A452"
+      ],
+      "notes": "Original four systembag/safe-exit patches plus success-edge puts logging; shared 9.0.1/9.0.2 binary."
+    },
+    {
+      "build": "13B143",
+      "size": 117424,
+      "paths": 9,
+      "source_sha256": "b421251878417bb456d570398fb4c1c85c0b00013745c122b21eb87365d8656e",
+      "result_sha256": "781d5812b83a0c5e27580440ddb6f76ed648c1fc8f5867065d6344922435700c",
+      "patches": [
+        {
+          "offset": 19512,
+          "before": "c1070054",
+          "after": "1f2003d5"
+        },
+        {
+          "offset": 19572,
+          "before": "08ffff97",
+          "after": "55000014"
+        },
+        {
+          "offset": 20016,
+          "before": "99feff97",
+          "after": "e6ffff17"
+        },
+        {
+          "offset": 19760,
+          "before": "40810610",
+          "after": "26000014"
+        },
+        {
+          "offset": 19632,
+          "before": "e0730630",
+          "after": "c07b0670"
+        },
+        {
+          "offset": 19648,
+          "before": "53feff97",
+          "after": "6a2f0094"
+        }
+      ],
+      "observed_builds": [
+        "13B143"
+      ],
+      "notes": "n71map iOS 9.1 sample; executable sections match reviewed 13A405/13A452. Six identical patches; user reports successful packaged-image mounting."
     },
     {
       "build": "13D15",

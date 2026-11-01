@@ -1,12 +1,13 @@
 # QwQramdisk
 
-This fork adds verified iPhone 6s Plus (`n66map`) iOS **9.2.1 / 13D15** and
-**9.3.2 / 13F69** keybagd support, signed compatible tools, and activation
-backup/restore fixes on top of [j1ans/QwQramdisk](https://github.com/j1ans/QwQramdisk).
-SSH, systembag reads, `/mnt2` write/read/delete and file transfer passed on
-running devices after helper updates. **Complete cold boot of the final
-bundled images is still pending.** The Samsung A9 9.2.1 profile was checked
-offline only. See [the validation matrix](docs/validation/ios9.md).
+This fork adds iPhone 6s (`n71map`) iOS **9.0.2 / 13A452** and
+**9.1 / 13B143** support alongside iPhone 6s Plus (`n66map`) **9.2.1 / 13D15**
+and **9.3.2 / 13F69**, signed compatible tools, and activation backup/restore
+fixes on top of [j1ans/QwQramdisk](https://github.com/j1ans/QwQramdisk).
+9.0.2, 9.2.1 and 9.3.2 have reviewed live-session logs confirming systembag
+and Data read/write checks; the updated 9.1 package was reported working by
+the tester. Validation is specific to the listed boards and test scope;
+see [the validation matrix](docs/validation/ios9.md).
 
 QwQramdisk supports iOS 7, iOS 8, and **experimental iOS 9** arm64 SSH
 ramdisks. iOS 7/8 support includes the iPhone 5s, iPhone 6, iPhone 6 Plus,
@@ -29,9 +30,9 @@ not yet supported.
 Device-tested on the iPhone 5s (iOS 7–8), iPhone 6 (iOS 8),
 iPad mini 2 (iOS 7), and iPhone 6s Plus (iOS 9.0.1 and 9.3.1).
 The iOS 9.0.1 iPhone 6s Plus profile passed SSH and `/mnt2` read/write
-testing; its current bundled-image boot regression is pending. Other iOS 9
-profiles remain experimental and are selected only by exact product, board,
-and firmware build.
+testing; its current bundled-image boot regression is pending. Additional
+iOS 9 test results are recorded in the validation matrix. Remaining profiles
+are experimental; selection requires the exact product, board and build.
 
 ## Requirements
 
@@ -142,15 +143,15 @@ For an iOS 9 profile, use `create <installed-version>` and
 9.2.1 and 9.3, require `--profile BOARD-BUILD` for the verified installed
 build. The same `/usr/local/bin/mount-mnt2` entry point handles `mount`.
 The iOS 9 profiles use checked bootchain patterns and keep the release kernel.
-The local bundled keybagd patcher recognizes the known 13A405, 13D15, 13E238 and 13F69
-source hashes; other binaries fail closed at `mount` until their matching
+The bundled keybagd patcher recognizes exact source hashes for 13A405/13A452,
+13B143, 13D15, 13E238 and 13F69; other binaries fail closed at `mount` until their matching
 system binary is analyzed. `create` does not compile or sign the patcher.
 
 For the local iPhone 6s Plus / iOS 9.2.1 port, see
 [the Chinese build and verification guide](README-6SP-IOS921.md).
 The local port also supports the reviewed 13F69 keybagd sample through a
 source-hash registry, with preflight validation before SEP/Data mounting.
-See [iOS 9 automatic matching and 9.3.2 validation](README-IOS9-AUTO.md).
+See [iOS 9 automatic matching and validation](README-IOS9-AUTO.md).
 
 ## Dump and restore activation records
 
@@ -385,6 +386,8 @@ addresses, XREFs, original bytes, and replacements.
 
 - Device-tested and passing on the iPhone 5s (iOS 7–8), iPhone 6 (iOS 8),
   and iPad mini 2 (iOS 7)
+- iPhone 6s n71map: 9.0.2 live-session checks passed; the 9.1 test package
+  was reported working by the tester. See the validation matrix for limits.
 - iOS 9.0–9.3.5 is experimental: 195 exact board/build combinations passed
   offline bootchain and full-image checks; most device startup and `/mnt2`
   mount combinations remain untested
