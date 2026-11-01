@@ -11,6 +11,18 @@ fail() { say "ERROR: $*" >&2; exit 1; }
 profile="$(/bin/cat /private/var/tmp/ios9-profile.txt)"
 [[ "$profile" =~ ^[a-z][a-z0-9]*-13[A-Z][0-9]+$ ]] || fail 'invalid iOS 9 profile marker'
 build="${profile##*-}"
+# ASP must be writable before System/SEP/Data activity starts. The mode is
+# baked into the matching profile; existing A9 profiles use the stock path.
+if [[ -f /private/var/tmp/ios9-storage-mode.txt ]]; then
+    storage_mode="$(/bin/cat /private/var/tmp/ios9-storage-mode.txt)"
+    case "$storage_mode" in
+        asp-writable)
+            /usr/local/libexec/ensure-asp-writable-ios9 \
+                || fail 'ASP storage write setup failed; restart the matching ramdisk' ;;
+        stock) ;;
+        *) fail 'invalid iOS 9 storage setup mode' ;;
+    esac
+fi
 [[ -b /dev/disk0s1s1 && -b /dev/disk0s1s2 ]] || fail 'missing System or Data volume'
 
 mounts="$(/sbin/mount)"

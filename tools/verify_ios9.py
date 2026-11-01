@@ -11,7 +11,8 @@ from pathlib import Path
 from .boot import verify
 from .build import cached_components, verify_hfs_file
 from .common import kit_bin, run, sha256
-from .ios9_pattern import BOOTARGS
+from .ios9_pattern import bootargs_for_profile
+from .profiles import get_profile
 from .profiles import PROFILES
 
 
@@ -36,7 +37,11 @@ def check(profile, cache, output, kit):
             raise ValueError("wrapped ramdisk differs from working filesystem")
         marker = scratch / "profile.txt"
         marker.write_text(profile + "\n")
+        storage_marker = scratch / "storage-mode.txt"
+        storage_marker.write_text(get_profile(profile).get("ios9_storage_mode", "stock") + "\n")
         files = {
+            "usr/local/libexec/ensure-asp-writable-ios9": ROOT / "ramdisk/ensure-asp-writable-ios9",
+            "private/var/tmp/ios9-storage-mode.txt": storage_marker,
             "bin/sleep": ROOT / "ramdisk/sleep-ios9",
             "usr/bin/find": ROOT / "ramdisk/find-ios9",
             "usr/bin/grep": ROOT / "ramdisk/grep-ios9",
@@ -72,7 +77,7 @@ def check(profile, cache, output, kit):
             run([img4, "-i", output / (stage + ".im4p"), "-o", payload])
             if sha256(payload) != sha256(raw):
                 raise ValueError(f"{stage} wrapped payload mismatch")
-            if stage == "iBEC" and BOOTARGS not in payload.read_bytes():
+            if stage == "iBEC" and bootargs_for_profile(profile) not in payload.read_bytes():
                 raise ValueError("iBEC is missing the current ramdisk boot arguments")
             stages[stage] = len(patch["patches"])
     return {
@@ -81,7 +86,7 @@ def check(profile, cache, output, kit):
         "firmware_components": "BuildManifest identity and SHA-1 passed",
         "artifacts": manifest["artifacts"],
         "wrapped_bootchain_patch_counts": stages,
-        "boot_arguments": BOOTARGS.rstrip(b"\0").decode("ascii"),
+        "boot_arguments": bootargs_for_profile(profile).rstrip(b"\0").decode("ascii"),
         "wrapped_ramdisk_files_verified": sorted(files),
         "device_boot": "not tested", "ssh": "not tested", "mnt2_rw": "not tested",
     }

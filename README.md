@@ -8,6 +8,8 @@ fixes on top of [j1ans/QwQramdisk](https://github.com/j1ans/QwQramdisk).
 and Data read/write checks; the updated 9.1 package was reported working by
 the tester. Validation is specific to the listed boards and test scope;
 see [the validation matrix](docs/validation/ios9.md).
+The iPhone 6 (`n61ap`) 9.3.2 profile also includes the device-tested ASP write
+setup: `nand-readonly=0` and early `ASPSetWritable`, with the stock kernel.
 
 QwQramdisk supports iOS 7, iOS 8, and **experimental iOS 9** arm64 SSH
 ramdisks. iOS 7/8 support includes the iPhone 5s, iPhone 6, iPhone 6 Plus,

@@ -149,6 +149,10 @@ for model in ("j81", "j82", "n61", "n71", "n71m", "n51", "n53",
     PROFILES.update(_profiles_for(model, builds))
 
 
+# Verified on n61ap / 13F69. Other iOS 9 profiles retain their original setup.
+PROFILES["n61-13F69"]["ios9_storage_mode"] = "asp-writable"
+
+
 def _hex_field(value, label):
     try:
         return int(str(value), 0)
@@ -226,7 +230,7 @@ def validation_status(profile):
         return "device-tested-ssh-rw"
     if name == "n71m-13B143":
         return "device-reported-ssh-rw"
-    if name in {"n66m-13D15", "n66m-13F69", "n71m-13A452"}:
+    if name in {"n66m-13D15", "n66m-13F69", "n71m-13A452", "n61-13F69"}:
         return "device-tested-live-ssh-rw"
     if p["version"].startswith("9."):
         return "experimental-offline"

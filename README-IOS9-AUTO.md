@@ -104,3 +104,36 @@ Linux 离线构建无需签名工具。旧入口 `tools.verify_ios921` 仍可使
 用户报告当前桌面版本在 9.3.5 也成功，未新增专用补丁。
 该反馈尚未提供主板和对应日志，不据此将所有 9.3.5 profile 标为已验证。
 9.3.3、9.3.4 仍待实测；其他型号需使用对应主板镜像，运行时继续精确核对 keybagd。
+
+## iPhone 6 / n61ap / 9.3.2：ASP 存储写入准备
+
+此机型的 keybagd 与已有 13F69 样本完全匹配，故障并非缺少 keybagd 补丁。
+默认启动时 Apple NAND Media、LwVM 和 Data 都公布为 `Writable=false`，
+原生 mount_hfs 因此返回 Permission denied。只改挂载工具权限不能解决。
+
+已在 n61ap / 13F69 的诊断镜像实测通过以下组合：
+
+1. iBEC 启动参数增加 `nand-readonly=0`，让子分区从启动时公布可写状态。
+2. 在挂载 System、加载 SEP 或挂载 Data 前，通过 ASPStorage 的
+   `ASPSetWritable=true` 启用实际写入路径。
+3. 继续原来的只读 System、精确摘要预检、SEP、journaled RW Data、
+   keybagd 初始化和读写验证流程，release kernel 保持不变。
+
+单独追加启动参数虽能打开 Data 设备，但未准备 ASP 写入路径时，实测挂载会停在
+存储 I/O 等待；因此不能省略第二步，也不能在挂载已经阻塞后才调用它。
+
+本地集成版通过 profile 的 `ios9_storage_mode=asp-writable` 自动打包启动参数、
+模式标记和预签名 `ensure-asp-writable-ios9`。目前只为已验证的 `n61-13F69`
+启用该模式；其他 profile 的启动参数和存储准备流程保持原样。
+新助手先核对 Data 介质可写及唯一 ASPStorage，再设置属性并检查结果。
+它不格式化、不改分区表，也不执行文件系统修复。
+
+```sh
+./qwqramdisk create 9.3.2 --profile n61-13F69 --offline
+./qwqramdisk boot 9.3.2 --profile n61-13F69
+./qwqramdisk mount
+```
+
+诊断镜像已验证 DFU 启动、SSH、journaled RW、keybagd 服务、systembag 读取、
+Data 写入/读回/删除。集成版输出镜像的冷启动回归单独记录，不能据此宣布所有 A7/A8
+设备和所有 iOS 9 版本均已通过。

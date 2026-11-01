@@ -55,6 +55,23 @@
       "patched_keybagd_sha256": "781d5812b83a0c5e27580440ddb6f76ed648c1fc8f5867065d6344922435700c",
       "relocated_paths": 9,
       "instruction_patches": 6
+    },
+    {
+      "profile": "n61-13F69",
+      "version": "9.3.2",
+      "offline_image_checks": "passed",
+      "diagnostic_image_cold_boot": "passed",
+      "device_live_session": "passed: systembag init/service/read and journaled Data write/read/delete",
+      "final_packaged_image_cold_boot": "pending regression",
+      "storage_setup": {
+        "boot_argument": "nand-readonly=0",
+        "property": "ASPSetWritable=true",
+        "ordering": "before any System/SEP/Data mount activity"
+      },
+      "kernel": "unchanged stock release",
+      "source_keybagd_sha256": "06a5777ac137435a05103e9fc36ceab7f9e2364bd09451db353c0cfa007302c9",
+      "instruction_patches": 5,
+      "relocated_paths": 22
     }
   ],
   "activation_restore_validation": "isolated device tmp fixture",

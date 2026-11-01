@@ -11,7 +11,7 @@ from .fetch import fetch_components, key_for
 from .patch_ibec import patch as patch_ibec
 from .patch_ibss import patch as patch_ibss
 from .patch_kernel import patch as patch_kernel
-from .ios9_pattern import (pack_stock_kernel,
+from .ios9_pattern import (bootargs_for_profile, pack_stock_kernel,
                            patch_stage as patch_ios9_stage)
 from .profiles import get_profile
 
@@ -158,7 +158,8 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
     if ios9:
         progress("pattern-patching iOS 9 iBSS and iBEC")
         patch_ios9_stage(ibss_dec, ibss_raw, "iBSS", output / "iBSS.patch.json")
-        patch_ios9_stage(ibec_dec, ibec_raw, "iBEC", output / "iBEC.patch.json")
+        patch_ios9_stage(ibec_dec, ibec_raw, "iBEC", output / "iBEC.patch.json",
+                         bootargs=bootargs_for_profile(profile))
         progress("preparing the stock iOS 9 kernel and monitor")
         pack_stock_kernel(kernel_dec, kernel_raw, output / "Kernel.patch.json")
     else:
@@ -266,10 +267,13 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
     if ios9:
         profile_marker = output / "ios9-profile.txt"
         profile_marker.write_text(profile + "\n")
+        storage_marker = output / "ios9-storage-mode.txt"
+        storage_marker.write_text(get_profile(profile).get("ios9_storage_mode", "stock") + "\n")
         for source, target in [
             (assets / "com.apple.mobile.keybagd-ios9.plist",
              "private/var/tmp/com.apple.mobile.keybagd-ios9.plist"),
             (profile_marker, "private/var/tmp/ios9-profile.txt"),
+            (storage_marker, "private/var/tmp/ios9-storage-mode.txt"),
         ]:
             hfs(hfsplus, ramdisk, "add", source, target)
             hfs(hfsplus, ramdisk, "chmod", "644", target)
@@ -319,7 +323,8 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
         hfs(hfsplus, ramdisk, "chown", "0:0",
             "usr/local/libexec/patch-keybagd-ios9")
         # Use the same signed iOS-9-compatible tools for every iOS 9 build.
-        for name, target in (("sleep-ios9", "bin/sleep"),
+        for name, target in (("ensure-asp-writable-ios9", "usr/local/libexec/ensure-asp-writable-ios9"),
+                             ("sleep-ios9", "bin/sleep"),
                              ("find-ios9", "usr/bin/find"),
                              ("grep-ios9", "usr/bin/grep"),
                              ("chmod-ios9", "bin/chmod"),
@@ -331,7 +336,8 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
             helper = assets / name
             if not helper.is_file():
                 raise FileNotFoundError(f"missing signed iOS 9 helper: {helper}")
-            hfs(hfsplus, ramdisk, "rm", target)
+            if name != "ensure-asp-writable-ios9":
+                hfs(hfsplus, ramdisk, "rm", target)
             hfs(hfsplus, ramdisk, "add", helper, target)
             hfs(hfsplus, ramdisk, "chmod", "755", target)
             hfs(hfsplus, ramdisk, "chown", "0:0", target)

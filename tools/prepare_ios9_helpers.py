@@ -51,11 +51,20 @@ def main():
             for name, member in resources.items():
                 with archive.extractfile(member) as source:
                     (temporary / name).write_bytes(source.read())
-        helpers = [patcher, ls, *(temporary / name for name in resources)]
+        storage = temporary / "ensure-asp-writable-ios9"
+        subprocess.run([
+            "xcrun", "--sdk", "iphoneos", "clang", "-target", "arm64-apple-ios9.0",
+            "-O2", "-Wall", "-Wextra",
+            str(ROOT / "ramdisk/ensure-asp-writable-ios9.c"),
+            "-framework", "CoreFoundation", "-framework", "IOKit", "-o", str(storage),
+        ], check=True)
+        helpers = [patcher, ls, storage, *(temporary / name for name in resources)]
         for source in helpers:
             # A SHA-1 CodeDirectory is compatible with the tested 13D15 loader.
+            entitlements = (["--entitlements", str(ROOT / "ramdisk/asp-storage-entitlements.plist")]
+                            if source == storage else [])
             subprocess.run(["codesign", "--force", "--sign", "-",
-                            "--digest-algorithm=sha1", str(source)], check=True)
+                            "--digest-algorithm=sha1", *entitlements, str(source)], check=True)
             subprocess.run(["codesign", "--verify", str(source)], check=True)
         for source in helpers:
             target = ROOT / "ramdisk" / source.name

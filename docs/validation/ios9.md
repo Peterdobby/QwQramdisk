@@ -6,6 +6,7 @@
 | iPhone 6s Plus, TSMC A9 / n66m-13F69 | 9.3.2 / 13F69 | Passed | Running ramdisk session: SSH, keybagd init/service, systembag read, Data write/read/delete, SFTP transfer |
 | iPhone 6s, TSMC A9 / n71m-13A452 | 9.0.2 / 13A452 | Passed | Reviewed diagnostics: DFU-to-SSH boot; live logging fix confirmed keybagd init/service, systembag read, Data write/read/delete. Final six-patch image cold boot pending regression |
 | iPhone 6s, TSMC A9 / n71m-13B143 | 9.1 / 13B143 | Passed | Initial diagnostics confirm DFU-to-SSH and read-only System; tester reports updated full mount package working. Raw final mount log not archived |
+| iPhone 6, A8 / n61-13F69 | 9.3.2 / 13F69 | Passed | Diagnostic image DFU-to-SSH; nand-readonly=0 plus ASPSetWritable before mounting; keybagd service, systembag read, journaled Data write/read/delete passed. Integrated image cold boot pending |
 | iPhone 6s Plus, Samsung A9 / n66-13D15 | 9.2.1 / 13D15 | Passed | Not tested |
 
 For 9.0.2, 9.2.1 and 9.3.2, final helpers were exercised in running ramdisk
@@ -70,3 +71,18 @@ Samples remain local and are not distributed in this repository.
 9.3.5 was additionally reported working without a new profile entry. Its board
 and logs were not provided; no board-specific validation status is inferred.
 9.3.3/9.3.4 and cross-board compatibility still require device testing.
+
+## n61ap ASP write setup
+
+The device initially advertised `Writable=false` for the NAND, LwVM and Data.
+A reviewed 13F69 keybagd match did not make the block device writable.
+Adding mount-helper entitlements alone failed; loading the bag through a
+read-only Data mount alone also failed. `nand-readonly=0` makes the published
+media writable, and ASPStorage's `ASPSetWritable=true` must run before mounting
+System/SEP/Data activity. Calling it after a pending RW mount did not recover
+that wait. The combined sequence passed on the diagnostic image with the
+unchanged release kernel and unchanged keybagd patches.
+
+The production helper and profile mode automate that sequence only for
+`n61-13F69`. Original A9 boot arguments are unchanged. The final integrated
+image is checked offline; its complete cold boot remains pending regression.

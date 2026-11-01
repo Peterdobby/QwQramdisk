@@ -25,6 +25,13 @@ BOOTARGS = (
 )
 
 
+def bootargs_for_profile(profile):
+    from .profiles import get_profile
+    if get_profile(profile).get("ios9_storage_mode") == "asp-writable":
+        return BOOTARGS[:-1] + b" nand-readonly=0\0"
+    return BOOTARGS
+
+
 def _validate(raw, stage):
     sizes = {"iBSS": (0x20000, 0x40000),
              "iBEC": (0x40000, 0xC0000)}
@@ -76,7 +83,7 @@ def _second_call_after_string(raw, finder, literal):
     return ref, calls[1]
 
 
-def locate(raw, stage):
+def locate(raw, stage, bootargs=BOOTARGS):
     """Return checked semantic patch sites, never a firmware-specific offset list."""
     version = _validate(raw, stage)
     finder = RawArm64(raw)
@@ -143,14 +150,14 @@ def locate(raw, stage):
         scratch = find_unique(raw, b"Reliance on this certificate by any",
                               "certificate scratch string")
         end = raw.find(b"\0", scratch)
-        if end < 0 or len(BOOTARGS) > end - scratch + 1:
+        if end < 0 or len(bootargs) > end - scratch + 1:
             raise ValueError("certificate scratch is too short for boot arguments")
         patches += [
             (debug_call, raw[debug_call:debug_call + 4], MOV_X0_1,
              "accept debug capability", {}),
             (uid_branch, raw[uid_branch:uid_branch + 4], NOP,
              "publish uid-aes-key", {"xref": uid_ref}),
-            (scratch, raw[scratch:scratch + len(BOOTARGS)], BOOTARGS,
+            (scratch, raw[scratch:scratch + len(bootargs)], bootargs,
              "relocate ramdisk boot arguments", {}),
             (page_ref, raw[page_ref:page_ref + 4], encode_adr(page_ref, scratch, 1),
              "redirect boot parser argument reference", {"target": scratch}),
@@ -187,10 +194,10 @@ def locate(raw, stage):
     return version, patches
 
 
-def patch_stage(source, destination, stage, manifest=None):
+def patch_stage(source, destination, stage, manifest=None, bootargs=BOOTARGS):
     source, destination = Path(source), Path(destination)
     raw = bytearray(source.read_bytes())
-    version, patches = locate(bytes(raw), stage)
+    version, patches = locate(bytes(raw), stage, bootargs)
     records = []
     for off, before, after, note, extra in patches:
         patch_bytes(raw, off, before.hex(), after.hex(), note)
