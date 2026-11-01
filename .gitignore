@@ -7,3 +7,9 @@ work/
 .DS_Store
 -b
 BLOG.md
+/*-activation-*.tar
+/*-activation-*/
+**/*_record.plist
+**/data_ark.plist
+**/com.apple.commcenter.device_specific_nobackup.plist
+*.bak-*

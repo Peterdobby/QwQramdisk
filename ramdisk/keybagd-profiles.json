@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "profiles": [
+    {
+      "build": "13A405",
+      "size": 117424,
+      "paths": 9,
+      "source_sha256": "d50181830555b9cf68a50a40af83cb0c3584b66fb6d0d4b272629e2c0322d7ae",
+      "result_sha256": "b1e45e6707d024f1b767f7e5606bbfdf371fcdfb6a3e99c2c61a513ae56e309e",
+      "patches": [
+        {
+          "offset": 19512,
+          "before": "c1070054",
+          "after": "1f2003d5"
+        },
+        {
+          "offset": 19572,
+          "before": "08ffff97",
+          "after": "55000014"
+        },
+        {
+          "offset": 20016,
+          "before": "99feff97",
+          "after": "e6ffff17"
+        },
+        {
+          "offset": 19760,
+          "before": "40810610",
+          "after": "26000014"
+        }
+      ]
+    },
+    {
+      "build": "13D15",
+      "size": 117424,
+      "paths": 9,
+      "source_sha256": "39b981a0641cb68771df8b3ef65e271c67cd27756720fb890831d3ee8d993a55",
+      "result_sha256": "8f02a3166f920e383c3a68581aa59662aee31a56a48b46c446d9022853927425",
+      "patches": [
+        {
+          "offset": 19512,
+          "before": "c1070054",
+          "after": "1f2003d5"
+        },
+        {
+          "offset": 19572,
+          "before": "08ffff97",
+          "after": "55000014"
+        },
+        {
+          "offset": 20016,
+          "before": "99feff97",
+          "after": "e6ffff17"
+        },
+        {
+          "offset": 19760,
+          "before": "40810610",
+          "after": "26000014"
+        },
+        {
+          "offset": 19632,
+          "before": "e0730630",
+          "after": "c07b0670"
+        },
+        {
+          "offset": 19648,
+          "before": "53feff97",
+          "after": "6a2f0094"
+        }
+      ]
+    },
+    {
+      "build": "13E238",
+      "size": 274512,
+      "paths": 27,
+      "source_sha256": "6d1cff20dcdd5a221395e7bcaa0b8064fd0c59f7db1ce020940e05a52b5a405a",
+      "result_sha256": "f070be9f01e4b372c20e3440b6d3a08fd4de4d7122a382c3f1afcce38f2ecf84",
+      "patches": [
+        {
+          "offset": 98556,
+          "before": "8dffff97",
+          "after": "1f2003d5"
+        },
+        {
+          "offset": 98576,
+          "before": "88ffff97",
+          "after": "1f2003d5"
+        },
+        {
+          "offset": 98680,
+          "before": "bc2f0094",
+          "after": "1f2003d5"
+        },
+        {
+          "offset": 99672,
+          "before": "410d0054",
+          "after": "1f2003d5"
+        },
+        {
+          "offset": 100096,
+          "before": "c30240f9",
+          "after": "47000014"
+        }
+      ]
+    },
+    {
+      "build": "13F69",
+      "size": 308240,
+      "paths": 22,
+      "source_sha256": "06a5777ac137435a05103e9fc36ceab7f9e2364bd09451db353c0cfa007302c9",
+      "result_sha256": "bd4724c8d1b3cf34771749269ea3602c13f0511ab77da8b9c4974558093e50af",
+      "patches": [
+        {
+          "offset": 110176,
+          "before": "8dffff97",
+          "after": "1f2003d5"
+        },
+        {
+          "offset": 110196,
+          "before": "88ffff97",
+          "after": "1f2003d5"
+        },
+        {
+          "offset": 110300,
+          "before": "00300094",
+          "after": "1f2003d5"
+        },
+        {
+          "offset": 111468,
+          "before": "410d0054",
+          "after": "1f2003d5"
+        },
+        {
+          "offset": 111892,
+          "before": "c30240f9",
+          "after": "4d000014"
+        }
+      ]
+    }
+  ]
+}

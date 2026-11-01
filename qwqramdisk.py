@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 from tools.activation import dump_activation, restore_activation
+from tools.activation_patch import patch_activation
 from tools.boot import boot, ssh_command
 from tools.build import build
 from tools.common import host_platform, kit_bin, progress
@@ -109,6 +110,10 @@ def parser():
     add_kit(p)
     p.add_argument("--port", type=int, default=2236)
     p.add_argument("tar", help="tar produced by dump-activation")
+    p = sub.add_parser("patch-activation",
+                       help="set the requested MobileGestalt CacheExtra flag to boolean true")
+    add_kit(p)
+    p.add_argument("--port", type=int, default=2236)
     p = sub.add_parser("lock-wipe",
                        help="arm the springboard wipe lock "
                             "(SBDeviceLockFailedAttempts=721, SBDeviceWipeEnabled=true)")
@@ -243,6 +248,15 @@ def main():
               f"({len(info['activation_records'])} activation record(s))")
         for backup in info["backups"]:
             print(f"On-device backup: {backup}")
+    elif a.command == "patch-activation":
+        progress("updating the MobileGestalt CacheExtra flag")
+        report = patch_activation(a.kit, a.port)
+        print(f"CacheExtra[{report['key']}] = true (boolean)")
+        print(f"Verified: {report['path']}")
+        if report["changed"]:
+            print(f"On-device backup: {report['backup']}")
+        else:
+            print("Already true; no file change needed")
     elif a.command in ("lock-wipe", "remove-disabled"):
         progress(f"updating SpringBoard configuration: {a.command}")
         report = (lock_wipe(a.kit, a.port) if a.command == "lock-wipe"

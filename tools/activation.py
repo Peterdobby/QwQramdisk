@@ -25,6 +25,7 @@ import io
 from datetime import datetime
 import plistlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -42,10 +43,14 @@ SYSTEM_CONTAINERS_REMOTE = "/mnt2/containers/Data/System"
 SYSTEM_VERSION_REMOTE = "/mnt1/System/Library/CoreServices/SystemVersion.plist"
 TAR_ROOT = "Lockdown"
 KIT_LOCKDOWN = "private/var/root/Library/Lockdown"
+COMM_CENTER_NOBACKUP = (
+    "wireless/Library/Preferences/com.apple.commcenter.device_specific_nobackup.plist")
+LEGACY_EXTRA_TARGETS = {"Extras/" + COMM_CENTER_NOBACKUP: "/mnt2/" + COMM_CENTER_NOBACKUP}
 KIT_EXTRA_PATHS = (
     "mobile/Media/iTunes_Control/iTunes/IC-Info.sidv",
     "mobile/Library/FairPlay/iTunes_Control/iTunes/IC-Info.sisv",
     "wireless/Library/Preferences/com.apple.commcenter.plist",
+    COMM_CENTER_NOBACKUP,
 )
 UNAMES = {0: "root", 501: "mobile", 25: "wireless", 4294967294: "nobody"}
 GNAMES = {0: "wheel", 501: "mobile", 25: "wireless", 4294967294: "nobody"}
@@ -71,8 +76,18 @@ def _ssh_base(kit_root, port):
 def ssh_run(kit_root, port, remote):
     """Run one command; dropbear transiently refuses rapid successive
     authentications, so a Permission denied answer is retried briefly."""
+    # Each SSH command gets a fresh shell; interactive PATH changes do not
+    # carry over. Support the verified live repair as well as rebuilt images.
+    prelude = (
+        'PATH=/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin; '
+        'if [ -f /private/var/tmp/ios9-profile.txt ]; then '
+        'case "$(/bin/cat /private/var/tmp/ios9-profile.txt)" in '
+        '*-13[A-Z][0-9]*) '
+        'if [ -x /mnt2/tmp/qwq-bin/find ]; then '
+        'PATH=/mnt2/tmp/qwq-bin:$PATH; fi ;; esac; fi; export PATH; '
+    )
     for attempt in (1, 2, 3):
-        result = subprocess.run(_ssh_base(kit_root, port) + [remote],
+        result = subprocess.run(_ssh_base(kit_root, port) + [prelude + remote],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode == 0:
             return result.stdout.decode(errors="replace")
@@ -96,6 +111,21 @@ def _scp_args(kit_root, port):
 
 def scp_pull(kit_root, port, remote, dest_dir, recursive=True):
     """Copy root@localhost:<remote> into dest_dir through the bundled sshpass."""
+    server = _live_sftp_server(kit_root, port)
+    if server:
+        # The running pre-fix image still has a broken default subsystem.
+        # Explicitly select the signed server already verified on this device.
+        local = Path(dest_dir) / PurePosixPath(remote).name
+        if any(c in str(local) + remote for c in '\n\r"\\'):
+            raise ValueError("unsupported characters in SFTP download path")
+        batch = f'get {"-r " if recursive else ""}"{remote}" "{local}"\n'
+        command = _sftp_args(kit_root, port, server) + ["-b", "-", "root@localhost"]
+        result = subprocess.run(command, input=batch.encode(),
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode:
+            raise RuntimeError("sftp download failed: "
+                               + result.stderr.decode(errors="replace").strip())
+        return
     command = _scp_args(kit_root, port)
     command.append("-r" if recursive else "-p")
     command += [f"root@localhost:{remote}", str(dest_dir)]
@@ -109,6 +139,23 @@ def scp_pull(kit_root, port, remote, dest_dir, recursive=True):
             time.sleep(2)
     raise RuntimeError(f"scp failed for {remote}: "
                        + result.stderr.decode(errors="replace").strip())
+
+
+def _live_sftp_server(kit_root, port):
+    return ssh_run(kit_root, port,
+                   'if [ -x /mnt2/tmp/qwq-sftp-server ]; then '
+                   'printf /mnt2/tmp/qwq-sftp-server; fi').strip()
+
+
+def _sftp_args(kit_root, port, server=None):
+    command = [str(kit_bin(kit_root, "sshpass")), "-p", "alpine",
+               "sftp", "-P", str(port), "-o", "BatchMode=no",
+               "-o", "PreferredAuthentications=password",
+               "-o", "PubkeyAuthentication=no",
+               "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null"]
+    if server:
+        command += ["-s", server]
+    return command
 
 
 def sftp_push_tree(kit_root, port, local_root, remote_root, dir_rels, file_rels):
@@ -129,14 +176,9 @@ def sftp_push_tree(kit_root, port, local_root, remote_root, dir_rels, file_rels)
         batch_path = batch.name
     # -b must follow the -o options: parsed before -oBatchMode=no it disables
     # password authentication and sshpass has nothing to answer.
-    command = [str(kit_bin(kit_root, "sshpass")), "-p", "alpine",
-               "sftp", "-P", str(port),
-               "-o", "BatchMode=no",
-               "-o", "PreferredAuthentications=password",
-               "-o", "PubkeyAuthentication=no",
-               "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
-               "-b", batch_path, "root@localhost"]
     try:
+        command = _sftp_args(kit_root, port, _live_sftp_server(kit_root, port))
+        command += ["-b", batch_path, "root@localhost"]
         for attempt in (1, 2):
             result = subprocess.run(command, stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT)
@@ -172,7 +214,7 @@ def list_tree(kit_root, port, remote_path):
     (/mnt2/root/Library/Lockdown is 0700 on device).
     """
     rows = []
-    for line in ssh_run(kit_root, port, f"find {remote_path} -ls").splitlines():
+    for line in ssh_run(kit_root, port, f"find {shlex.quote(remote_path)} -ls").splitlines():
         match = _FIND_LS.match(line)
         if not match:
             continue
@@ -193,6 +235,8 @@ def list_tree(kit_root, port, remote_path):
         gid = int(group) if group.isdigit() else GROUP_IDS[group]
         rows.append((path[len(remote_path):].lstrip("/"), bits, uid, gid,
                      int(size), mode.startswith("d")))
+    if not rows:
+        raise RuntimeError(f"find returned no readable listing for {remote_path}")
     return rows
 
 
@@ -278,10 +322,16 @@ def _pick_legacy_source(kit_root, port, version):
                   else [LOCKDOWN_REMOTE, MAD_REMOTE])
     fallback = None
     for candidate in candidates:
-        try:
-            rows = list_tree(kit_root, port, candidate)
-        except RuntimeError:
-            continue  # path missing on this firmware
+        exists = ssh_run(kit_root, port,
+                         f'if [ -d {shlex.quote(candidate)} ]; then '
+                         'printf yes; else printf no; fi').strip()
+        if exists == "no":
+            continue
+        if exists != "yes":
+            raise RuntimeError(f"unexpected directory check result for {candidate}")
+        # Listing failures must retain their actual error, not become a claim
+        # that the directory is missing or the device is unactivated.
+        rows = list_tree(kit_root, port, candidate)
         if _has_record(rows):
             return candidate, rows
         if fallback is None:
@@ -298,7 +348,12 @@ def _dump_sources(kit_root, port, version):
     """Return (remote path, tar path, listing) for each activation source."""
     if not _uses_system_container(version):
         source, rows = _pick_legacy_source(kit_root, port, version)
-        return [(source, TAR_ROOT, rows)]
+        sources = [(source, TAR_ROOT, rows)]
+        for name, remote in LEGACY_EXTRA_TARGETS.items():
+            if ssh_run(kit_root, port,
+                       f'test -f "{remote}" && echo yes || echo no').strip() == "yes":
+                sources.append((remote, name, list_tree(kit_root, port, remote)))
+        return sources
     root = _system_container(kit_root, port, require_record=True)
     records = root + "/Library/activation_records"
     ark = root + "/Library/internal/data_ark.plist"
@@ -463,7 +518,7 @@ def _restore_system_container(kit_root, port, staging, files, dirs, stamp,
                          f'[ -e "{path}" ] && echo yes || echo no').strip()
         if exists == "yes":
             backup = path + f".bak-{stamp}"
-            script.append(f'cp -R "{path}" "{backup}"')
+            script.append(f'cp -pR "{path}" "{backup}"')
             backups.append(backup)
     script += [
         f'rm -rf "{records}"',
@@ -480,9 +535,9 @@ def _restore_system_container(kit_root, port, staging, files, dirs, stamp,
             remote = file_targets[member.name]
         else:
             continue  # Do not change existing parent directory ownership/mode.
-        script.append(f'/usr/sbin/chown {_chown_id(member.uid)}:'
+        script.append(f'chown {_chown_id(member.uid)}:'
                       f'{_chown_id(member.gid)} "{remote}"')
-        script.append(f'/bin/chmod {member.mode:o} "{remote}"')
+        script.append(f'chmod {member.mode:o} "{remote}"')
     script.append(f'rm -rf "{remote_stage}"')
     ssh_run(kit_root, port, "\n".join(script))
 
@@ -530,12 +585,19 @@ def restore_activation(kit_root, port, tar_path):
                          for m in members)
         if kit_layout and not _uses_system_container(version):
             raise RuntimeError("Kit-style activation tar requires iOS 9.3 or newer")
-        def valid_root(name):
+        extra_parents = {str(p) for name in LEGACY_EXTRA_TARGETS
+                         for p in PurePosixPath(name).parents if str(p) != "."}
+        def valid_root(member):
+            name = member.name
             if kit_layout:
                 return name in ("private", "private/var") or name.startswith("private/var/")
+            if member.isfile() and name in LEGACY_EXTRA_TARGETS:
+                return True
+            if member.isdir() and name in extra_parents:
+                return True
             return name == TAR_ROOT or name.startswith(TAR_ROOT + "/")
         unsafe = [m.name for m in members
-                  if not valid_root(m.name)
+                  if not valid_root(m)
                   or any(part in (".", "..") for part in PurePosixPath(m.name).parts)
                   or re.fullmatch(r"[A-Za-z0-9_./-]+", m.name) is None
                   or not (m.isfile() or m.isdir())]
@@ -565,13 +627,23 @@ def restore_activation(kit_root, port, tar_path):
                                        if m.name.endswith("_record.plist")],
                 "backups": backups,
             }
-        stamp = time.strftime("%Y%m%d-%H%M%S")
+        stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S-%f")
         remote_stage = f"/mnt2/tmp/qwq-restore-{stamp}"
         ssh_run(kit_root, port, f'rm -rf "{remote_stage}"')
-        dir_rels = [m.name[len(TAR_ROOT):].lstrip("/") for m in dirs]
-        file_rels = [m.name[len(TAR_ROOT):].lstrip("/") for m in files]
+        lockdown_dirs = [m for m in dirs
+                         if m.name == TAR_ROOT or m.name.startswith(TAR_ROOT + "/")]
+        lockdown_files = [m for m in files if m.name.startswith(TAR_ROOT + "/")]
+        extra_files = [m for m in files if m.name in LEGACY_EXTRA_TARGETS]
+        dir_rels = [m.name[len(TAR_ROOT):].lstrip("/") for m in lockdown_dirs]
+        file_rels = [m.name[len(TAR_ROOT):].lstrip("/") for m in lockdown_files]
         sftp_push_tree(kit_root, port, staging / TAR_ROOT,
                        f"{remote_stage}/{TAR_ROOT}", dir_rels, file_rels)
+        if extra_files:
+            extra_rels = [m.name[len("Extras/"):] for m in extra_files]
+            extra_dirs = {str(parent) for rel in extra_rels
+                          for parent in PurePosixPath(rel).parents if str(parent) != "."}
+            sftp_push_tree(kit_root, port, staging / "Extras",
+                           f"{remote_stage}/Extras", sorted(extra_dirs), extra_rels)
 
         backup = f"{LOCKDOWN_REMOTE}.bak-{stamp}"
         script = ["set -e"]
@@ -579,33 +651,50 @@ def restore_activation(kit_root, port, tar_path):
         if ssh_run(kit_root, port,
                    f'[ -e "{LOCKDOWN_REMOTE}" ] && echo yes || echo no'
                    ).strip().endswith("yes"):
-            script.append(f'cp -R "{LOCKDOWN_REMOTE}" "{backup}"')
+            script.append(f'cp -pR "{LOCKDOWN_REMOTE}" "{backup}"')
             backups.append(backup)
+        for member in extra_files:
+            remote = LEGACY_EXTRA_TARGETS[member.name]
+            if ssh_run(kit_root, port,
+                       f'[ -e "{remote}" ] && echo yes || echo no').strip() == "yes":
+                backup = remote + f".bak-{stamp}"
+                script.append(f'cp -p "{remote}" "{backup}"')
+                backups.append(backup)
         script += [
             f'rm -rf "{LOCKDOWN_REMOTE}"',
             f'mkdir -p /mnt2/root/Library',
             f'mv "{remote_stage}/{TAR_ROOT}" "{LOCKDOWN_REMOTE}"',
         ]
+        for member in extra_files:
+            remote = LEGACY_EXTRA_TARGETS[member.name]
+            script.append(f'mkdir -p "{PurePosixPath(remote).parent}"')
+            script.append(f'mv "{remote_stage}/{member.name}" "{remote}"')
         # scp did not preserve modes or ownership; replay the tar metadata
         # (directories first, then files, chown before chmod).
-        for member in sorted(dirs, key=lambda m: m.name.count("/")) + \
+        for member in sorted(lockdown_dirs, key=lambda m: m.name.count("/")) + \
                 sorted(files, key=lambda m: m.name.count("/")):
-            remote = LOCKDOWN_REMOTE + member.name[len(TAR_ROOT):]
-            script.append(f'/usr/sbin/chown {_chown_id(member.uid)}:'
+            remote = (LEGACY_EXTRA_TARGETS[member.name] if member.name in LEGACY_EXTRA_TARGETS
+                      else LOCKDOWN_REMOTE + member.name[len(TAR_ROOT):])
+            script.append(f'chown {_chown_id(member.uid)}:'
                           f'{_chown_id(member.gid)} "{remote}"')
-            script.append(f'/bin/chmod {member.mode:o} "{remote}"')
+            script.append(f'chmod {member.mode:o} "{remote}"')
         script.append(f'rm -rf "{remote_stage}"')
         ssh_run(kit_root, port, "\n".join(script))
 
         # Verify what actually landed on /mnt2 against the tar manifest.
         rows = list_tree(kit_root, port, LOCKDOWN_REMOTE)
-        expected = {m.name[len(TAR_ROOT):].lstrip("/"): m.size for m in files}
+        expected = {m.name[len(TAR_ROOT):].lstrip("/"): m.size for m in lockdown_files}
         landed = {rel: size for rel, _, _, _, size, is_dir in rows if not is_dir}
         missing = {name: size for name, size in expected.items()
                    if landed.get(name) != size}
         if missing:
             raise RuntimeError(f"restore verification failed; these tar files "
                                f"are absent or changed on the device: {missing}")
+        for member in extra_files:
+            remote = LEGACY_EXTRA_TARGETS[member.name]
+            rows = list_tree(kit_root, port, remote)
+            if rows != [("", member.mode, member.uid, member.gid, member.size, False)]:
+                raise RuntimeError(f"restore verification failed for {remote}")
         info = {
             "tar": str(tar_path), "restored": len(files),
             "activation_records": [m.name for m in files

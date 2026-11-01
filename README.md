@@ -1,5 +1,13 @@
 # QwQramdisk
 
+This fork adds verified iPhone 6s Plus (`n66map`) iOS **9.2.1 / 13D15** and
+**9.3.2 / 13F69** keybagd support, signed compatible tools, and activation
+backup/restore fixes on top of [j1ans/QwQramdisk](https://github.com/j1ans/QwQramdisk).
+SSH, systembag reads, `/mnt2` write/read/delete and file transfer passed on
+running devices after helper updates. **Complete cold boot of the final
+bundled images is still pending.** The Samsung A9 9.2.1 profile was checked
+offline only. See [the validation matrix](docs/validation/ios9.md).
+
 QwQramdisk supports iOS 7, iOS 8, and **experimental iOS 9** arm64 SSH
 ramdisks. iOS 7/8 support includes the iPhone 5s, iPhone 6, iPhone 6 Plus,
 iPad Air, and iPad Air 2 families. The iOS 9 profiles cover exact firmware
@@ -44,7 +52,7 @@ detection, DFU boot, SSH, and device operations still require macOS.
 ## Quick start (macOS)
 
 ```sh
-git clone https://github.com/j1ans/QwQramdisk.git
+git clone https://github.com/Peterdobby/QwQramdisk.git
 cd QwQramdisk
 chmod +x qwqramdisk
 
@@ -134,9 +142,15 @@ For an iOS 9 profile, use `create <installed-version>` and
 9.2.1 and 9.3, require `--profile BOARD-BUILD` for the verified installed
 build. The same `/usr/local/bin/mount-mnt2` entry point handles `mount`.
 The iOS 9 profiles use checked bootchain patterns and keep the release kernel.
-The bundled keybagd patcher recognizes only the known 13A405 and 13E238
-source hashes; other builds fail closed at `mount` until their matching
+The local bundled keybagd patcher recognizes the known 13A405, 13D15, 13E238 and 13F69
+source hashes; other binaries fail closed at `mount` until their matching
 system binary is analyzed. `create` does not compile or sign the patcher.
+
+For the local iPhone 6s Plus / iOS 9.2.1 port, see
+[the Chinese build and verification guide](README-6SP-IOS921.md).
+The local port also supports the reviewed 13F69 keybagd sample through a
+source-hash registry, with preflight validation before SEP/Data mounting.
+See [iOS 9 automatic matching and 9.3.2 validation](README-IOS9-AUTO.md).
 
 ## Dump and restore activation records
 
@@ -174,10 +188,35 @@ The iOS 9.3+ dump also includes available `IC-Info.sidv`, `IC-Info.sisv`, and
 backup. A dump or restore without any `*_record.plist` fails before writing
 a replacement.
 
+The local port also dumps and restores the optional
+`/mnt2/wireless/Library/Preferences/com.apple.commcenter.device_specific_nobackup.plist`.
+On iOS 9.2.1 and other legacy-layout versions it is stored under
+`Extras/wireless/Library/Preferences/` in the tar; on iOS 9.3+ it uses
+`private/var/wireless/Library/Preferences/`. Restore writes it back to the
+same device path after backing up the existing file, and verifies size,
+ownership and permissions. Older dumps without this file remain supported
+and leave it untouched.
+
 The iRam userland in the ramdisk is linked against iOS 9+ libSystem symbols,
 so its `tar` and `ls -l` crash on the iOS 7 restore ramdisk. Nothing is
 therefore archived on the device: `find -ls` provides the listing, `scp`
 moves the files, and the tar is assembled and verified on the host.
+
+## Patch the MobileGestalt cache flag
+
+```sh
+./qwqramdisk patch-activation
+```
+
+From the booted ramdisk, this mounts/verifies `/mnt2`, reads
+`/mnt2/mobile/Library/Caches/com.apple.MobileGestalt.plist`, and sets
+`CacheExtra["a6vjpkzcrjrsxmnifsm0dg"]` to boolean `true`.
+It preserves the XML/binary plist format and all other values, stages and
+verifies the edited file, then saves a `.bak-<timestamp>` copy before replacing
+the original. The resulting bytes, owner, group and permissions are read back
+and verified. An already-true boolean needs no write. An invalid plist or a
+non-dictionary `CacheExtra` is rejected. Use `--port PORT` for a different
+forwarded SSH port. This host-side command does not require rebuilding images.
 
 ## Arm or clear the springboard device lock
 
@@ -214,6 +253,7 @@ boot            Exploit DFU, send the components, and start USB/SSH forwarding
 mount           Run the verified /mnt2 mount workflow over SSH
 dump-activation Package the activation Lockdown folder into a tar
 restore-activation Write a dumped tar back onto the device
+patch-activation Set the requested MobileGestalt CacheExtra flag to boolean true
 lock-wipe       iOS 7/8: arm the springboard wipe lock
 remove-disabled iOS 7/8: clear the disabled state
 nvram-erase     Arm iOS 9+ Erase All Content and Settings in NVRAM

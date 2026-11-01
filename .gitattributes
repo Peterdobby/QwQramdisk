@@ -1,0 +1,2 @@
+# Preserve the imported Apple/BSD sources byte-for-byte, including whitespace.
+vendor/src/file_cmds-220.7/ls/* whitespace=-blank-at-eol,-space-before-tab

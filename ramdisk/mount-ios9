@@ -1,0 +1,3 @@
+#!/bin/sh
+# Dropbear's default PATH includes /bin but omits /sbin.
+exec /sbin/mount "$@"

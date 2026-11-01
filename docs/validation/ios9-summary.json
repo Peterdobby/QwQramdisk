@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-01",
+  "profiles": [
+    {
+      "profile": "n66m-13D15",
+      "version": "9.2.1",
+      "offline_image_checks": "passed",
+      "device_live_session": "passed",
+      "final_packaged_image_cold_boot": "pending",
+      "source_keybagd_sha256": "39b981a0641cb68771df8b3ef65e271c67cd27756720fb890831d3ee8d993a55",
+      "patched_keybagd_sha256": "8f02a3166f920e383c3a68581aa59662aee31a56a48b46c446d9022853927425",
+      "relocated_paths": 9,
+      "instruction_patches": 6
+    },
+    {
+      "profile": "n66m-13F69",
+      "version": "9.3.2",
+      "offline_image_checks": "passed",
+      "device_live_session": "passed",
+      "final_packaged_image_cold_boot": "pending",
+      "source_keybagd_sha256": "06a5777ac137435a05103e9fc36ceab7f9e2364bd09451db353c0cfa007302c9",
+      "patched_keybagd_sha256": "bd4724c8d1b3cf34771749269ea3602c13f0511ab77da8b9c4974558093e50af",
+      "relocated_paths": 22,
+      "instruction_patches": 5
+    },
+    {
+      "profile": "n66-13D15",
+      "version": "9.2.1",
+      "offline_image_checks": "passed",
+      "device_live_session": "not tested",
+      "final_packaged_image_cold_boot": "pending",
+      "source_keybagd_sha256": "39b981a0641cb68771df8b3ef65e271c67cd27756720fb890831d3ee8d993a55",
+      "patched_keybagd_sha256": "8f02a3166f920e383c3a68581aa59662aee31a56a48b46c446d9022853927425",
+      "relocated_paths": 9,
+      "instruction_patches": 6
+    }
+  ],
+  "activation_restore_validation": "isolated device tmp fixture",
+  "mobilegestalt_patch_validation": "offline only"
+}

@@ -318,6 +318,30 @@ def build(kit_root, output, cache, project_root, profile="n53-12F70",
             "usr/local/libexec/patch-keybagd-ios9")
         hfs(hfsplus, ramdisk, "chown", "0:0",
             "usr/local/libexec/patch-keybagd-ios9")
+        # Use the same signed iOS-9-compatible tools for every iOS 9 build.
+        for name, target in (("sleep-ios9", "bin/sleep"),
+                             ("find-ios9", "usr/bin/find"),
+                             ("grep-ios9", "usr/bin/grep"),
+                             ("chmod-ios9", "bin/chmod"),
+                             ("cp-ios9", "bin/cp"),
+                             ("chown-ios9", "usr/sbin/chown"),
+                             ("ls-ios9", "bin/ls"),
+                             ("scp-ios9", "usr/bin/scp"),
+                             ("sftp-server-ios9", "usr/libexec/sftp-server")):
+            helper = assets / name
+            if not helper.is_file():
+                raise FileNotFoundError(f"missing signed iOS 9 helper: {helper}")
+            hfs(hfsplus, ramdisk, "rm", target)
+            hfs(hfsplus, ramdisk, "add", helper, target)
+            hfs(hfsplus, ramdisk, "chmod", "755", target)
+            hfs(hfsplus, ramdisk, "chown", "0:0", target)
+            verify_hfs_file(hfsplus, ramdisk, target, helper,
+                            dec / ("verify-ios921-" + name))
+        hfs(hfsplus, ramdisk, "add", assets / "mount-ios9", "bin/mount")
+        hfs(hfsplus, ramdisk, "chmod", "755", "bin/mount")
+        hfs(hfsplus, ramdisk, "chown", "0:0", "bin/mount")
+        verify_hfs_file(hfsplus, ramdisk, "bin/mount", assets / "mount-ios9",
+                        dec / "verify-ios921-mount-entry")
         hfs(hfsplus, ramdisk, "add", assets / "mount-ios9-stage",
             "usr/local/bin/mount-ios9-stage")
         hfs(hfsplus, ramdisk, "chmod", "755", "usr/local/bin/mount-ios9-stage")

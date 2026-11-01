@@ -20,7 +20,7 @@ IBEC_MASK = bytes.fromhex(
 LEGACY_MASK = bytes.fromhex(
     "7f020071090080128812891a1f000071a112891ae00308aa")
 BOOTARGS = (
-    b"rd=md0 -v debug=0x2014e amfi_get_out_of_my_way=1 "
+    b"rd=md0 -v debug=0x2014e amfi=0xff amfi_get_out_of_my_way=1 "
     b"cs_enforcement_disable=1\0"
 )
 
